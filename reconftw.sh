@@ -5636,13 +5636,13 @@ function recon() {
 	subtakeover
 	remove_big_files
 	s3buckets
-	screenshot
+	# screenshot
 	#	virtualhosts
 	cdnprovider
 	portscan
 	geo_info
 	waf_checks
-	nuclei_check
+	# nuclei_check
 	fuzz
 	iishortname
 	urlchecks
@@ -5774,7 +5774,7 @@ function multi_recon() {
 		webprobe_full
 		subtakeover
 		remove_big_files
-		screenshot
+		# screenshot
 		#		virtualhosts
 		cdnprovider
 		portscan
@@ -5821,7 +5821,7 @@ function multi_recon() {
 	notification "- ${NUMOFLINES_cloudsprov_total} total IPs belongs to cloud" good
 	s3buckets
 	waf_checks
-	nuclei_check
+	# nuclei_check
 	for domain in $targets; do
 		loopstart=$(date +%s)
 		dir=$workdir/targets/$domain
@@ -5963,7 +5963,7 @@ function subs_menu() {
 	webprobe_full
 	subtakeover
 	remove_big_files
-	screenshot
+	# screenshot
 	#	virtualhosts
 	zonetransfer
 	s3buckets
@@ -5978,10 +5978,10 @@ function subs_menu() {
 function webs_menu() {
 	subtakeover
 	remove_big_files
-	screenshot
+	# screenshot
 	#	virtualhosts
 	waf_checks
-	nuclei_check
+	# nuclei_check
 	fuzz
 	cms_scanner
 	iishortname
@@ -6007,11 +6007,11 @@ function zen_menu() {
 	subtakeover
 	remove_big_files
 	s3buckets
-	screenshot
+	# screenshot
 	#	virtualhosts
 	cdnprovider
 	waf_checks
-	nuclei_check
+	# nuclei_check
 	fuzz
 	iishortname
 	if [[ $AXIOM == true ]]; then
