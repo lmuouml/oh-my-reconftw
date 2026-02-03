@@ -3301,14 +3301,10 @@ function fuzz() {
 
 		if [[ -s "webs/webs_all.txt" ]]; then
 			if [[ $AXIOM != true ]]; then
-				interlace -tL webs/webs_all.txt -threads ${INTERLACE_THREADS} -c "ffuf ${FFUF_FLAGS} -t ${FFUF_THREADS} -rate ${FFUF_RATELIMIT} -H \"${HEADER}\" -w ${fuzz_wordlist} -maxtime ${FFUF_MAXTIME} -u _target_/FUZZ -o _output_/_cleantarget_.json" -o $dir/.tmp/fuzzing 2>>"$LOGFILE" >/dev/null
-				for sub in $(cat webs/webs_all.txt); do
-					sub_out=$(echo $sub | sed -e 's|^[^/]*//||' -e 's|/.*$||')
-
-					[ -s "$dir/.tmp/fuzzing/${sub_out}.json" ] && cat $dir/.tmp/fuzzing/${sub_out}.json | jq -r 'try .results[] | "\(.status) \(.length) \(.url)"' | sort -k1 | anew -q $dir/fuzzing/${sub_out}.txt
-				done
+				interlace -tL webs/webs_all.txt -threads ${INTERLACE_THREADS} -c "ffuf ${FFUF_FLAGS} -t ${FFUF_THREADS} -rate ${FFUF_RATELIMIT} -H \"${HEADER}\" -w ${fuzz_wordlist} -maxtime ${FFUF_MAXTIME} -u _target_/FUZZ -o - -of json | jq -r 'try .results[] | \"\(.status) \(.length) \(.url)\"' | sort -k1 | anew -q _output_/_cleantarget_.txt" -o $dir/fuzzing 2>>"$LOGFILE" >/dev/null
 				find $dir/fuzzing/ -type f -iname "*.txt" -exec cat {} + 2>>"$LOGFILE" | sort -k1 | anew -q $dir/fuzzing/fuzzing_full.txt
 			else
+
 				wget -q -O - ${fuzzing_remote_list} >.tmp/fuzzing_remote_list.txt
 				axiom-scan webs/webs_all.txt -m ffuf -wL .tmp/fuzzing_remote_list.txt -H "${HEADER}" $FFUF_FLAGS -s -maxtime $FFUF_MAXTIME -oJ $dir/.tmp/ffuf-content.json $AXIOM_EXTRA_ARGS 2>>"$LOGFILE" >/dev/null
 
