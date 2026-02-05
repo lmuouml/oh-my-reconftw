@@ -5385,14 +5385,14 @@ function end() {
 		"${tools}/reconftw_ai/venv/bin/python3" "${tools}/reconftw_ai/reconftw_ai.py" --results-dir ${dir} --output-dir ${dir}/ai_result --model ${AI_MODEL} --output-format ${AI_REPORT_TYPE} --report-type ${AI_REPORT_PROFILE} --prompts-file ${tools}/reconftw_ai/prompts.json 2>>"${LOGFILE}" >/dev/null
 	fi
 
-	find $dir -type f -empty -print | grep -v '.called_fn' | grep -v '.log' | grep -v '.tmp' | xargs rm -f 2>>"$LOGFILE" >/dev/null
-	find $dir -type d -empty -print -delete 2>>"$LOGFILE" >/dev/null
+	find $dir -type f -empty -print | grep -v '.called_fn' | grep -v '.log' | grep -v '.tmp' | grep -v 'fuzz.log' | xargs rm -f 2>>"$LOGFILE" >/dev/null
+	find $dir -type d -empty -print ! -path "$dir/fuzzing" -delete 2>>"$LOGFILE" >/dev/null
 
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] End" >>"${LOGFILE}"
 
 	if [[ $PRESERVE != true ]]; then
-		find $dir -type f -empty | grep -v "called_fn" | xargs rm -f 2>>"$LOGFILE" >/dev/null
-		find $dir -type d -empty | grep -v "called_fn" | xargs rm -rf 2>>"$LOGFILE" >/dev/null
+		find $dir -type f -empty | grep -v "called_fn" | grep -v "fuzz.log" | xargs rm -f 2>>"$LOGFILE" >/dev/null
+		find $dir -type d -empty | grep -v "called_fn" | grep -v "/fuzzing$" | xargs rm -rf 2>>"$LOGFILE" >/dev/null
 	fi
 
 	if [[ $REMOVETMP == true ]]; then
