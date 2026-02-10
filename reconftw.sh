@@ -3303,7 +3303,7 @@ function fuzz() {
 			mkdir -p "$dir/fuzzing"
 			touch "$dir/fuzzing/fuzzing_full.txt" "$dir/fuzzing/fuzz.log"
 			if [[ $AXIOM != true ]]; then
-				interlace --silent --no-bar -tL webs/webs_all.txt -threads ${INTERLACE_THREADS} -c "ffuf ${FFUF_FLAGS} -silent -t ${FFUF_THREADS} -rate ${FFUF_RATELIMIT} -H \"${HEADER}\" -w ${fuzz_wordlist} -maxtime ${FFUF_MAXTIME} -u _target_/FUZZ -o - -of json 2>/dev/null | jq -r 'try .results[] | \"\(.status) \(.length) \(.url)\"' | sort -k1 | anew -q _output_/_cleantarget_.txt" -o $dir/fuzzing 2>>"$LOGFILE" >/dev/null
+				interlace --silent --no-bar -tL webs/webs_all.txt -threads ${INTERLACE_THREADS} -c "ffuf ${FFUF_FLAGS} -silent -t ${FFUF_THREADS} -rate ${FFUF_RATELIMIT} -H \"${HEADER}\" -w ${fuzz_wordlist} -maxtime ${FFUF_MAXTIME} -u _target_/FUZZ -o _output_/_cleantarget_.json -of json >/dev/null 2>&1 && [ -f _output_/_cleantarget_.json ] && jq -r 'try .results[] | \"\(.status) \(.length) \(.url)\"' _output_/_cleantarget_.json | sort -k1 | anew -q _output_/_cleantarget_.txt; rm -f _output_/_cleantarget_.json" -o $dir/fuzzing 2>>"$LOGFILE" >/dev/null
 				find $dir/fuzzing/ -type f -iname "*.txt" ! -name "fuzzing_full.txt" -exec cat {} + 2>>"$LOGFILE" | sort -k1 | anew -q $dir/fuzzing/fuzzing_full.txt
 				[ -f "$dir/fuzzing/fuzzing_full.txt" ] && cp "$dir/fuzzing/fuzzing_full.txt" "$dir/fuzzing/fuzz.log" 2>/dev/null
 			else
