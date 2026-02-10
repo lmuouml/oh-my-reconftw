@@ -3300,14 +3300,17 @@ function fuzz() {
 		fi
 
 		if [[ -s "webs/webs_all.txt" ]]; then
-			mkdir -p "$dir/fuzzing"
-			touch "$dir/fuzzing/fuzzing_full.txt" "$dir/fuzzing/fuzz.log"
 			if [[ $AXIOM != true ]]; then
-				interlace --silent --no-bar -tL webs/webs_all.txt -threads ${INTERLACE_THREADS} -c "ffuf ${FFUF_FLAGS} -silent -t ${FFUF_THREADS} -rate ${FFUF_RATELIMIT} -H \"${HEADER}\" -w ${fuzz_wordlist} -maxtime ${FFUF_MAXTIME} -u _target_/FUZZ -o _output_/_cleantarget_.json -of json >/dev/null 2>&1 && [ -f _output_/_cleantarget_.json ] && jq -r 'try .results[] | \"\(.status) \(.length) \(.url)\"' _output_/_cleantarget_.json | sort -k1 | anew -q _output_/_cleantarget_.txt; rm -f _output_/_cleantarget_.json" -o $dir/fuzzing 2>>"$LOGFILE" >/dev/null
-				find $dir/fuzzing/ -type f -iname "*.txt" ! -name "fuzzing_full.txt" -exec cat {} + 2>>"$LOGFILE" | sort -k1 | anew -q $dir/fuzzing/fuzzing_full.txt
-				[ -f "$dir/fuzzing/fuzzing_full.txt" ] && cp "$dir/fuzzing/fuzzing_full.txt" "$dir/fuzzing/fuzz.log" 2>/dev/null
+				interlace -tL webs/webs_all.txt -threads ${INTERLACE_THREADS} -c "ffuf ${FFUF_FLAGS} -t ${FFUF_THREADS} -rate ${FFUF_RATELIMIT} -H \"${HEADER}\" -w ${fuzz_wordlist} -maxtime ${FFUF_MAXTIME} -u _target_/FUZZ -o _output_/_cleantarget_.json -of json" -o $dir/.tmp/fuzzing 2>>"$LOGFILE" >/dev/null
+				for sub in $(cat webs/webs_all.txt); do
+					sub_out=$(echo $sub | sed -e 's|^[^/]*//||' -e 's|/.*$||')
+					if [ -s "$dir/.tmp/fuzzing/${sub_out}.json" ]; then
+						cat "$dir/.tmp/fuzzing/${sub_out}.json" | jq -r 'try .results[] | "\(.status) \(.length) \(.url)"' | sort -k1 | anew -q "$dir/fuzzing/${sub_out}.txt"
+						rm -f "$dir/.tmp/fuzzing/${sub_out}.json" # 核心优化：解析完立即删除，节省空间
+					fi
+				done
+				find $dir/fuzzing/ -type f -iname "*.txt" -exec cat {} + 2>>"$LOGFILE" | sort -k1 | anew -q $dir/fuzzing/fuzzing_full.txt
 			else
-
 				wget -q -O - ${fuzzing_remote_list} >.tmp/fuzzing_remote_list.txt
 				axiom-scan webs/webs_all.txt -m ffuf -wL .tmp/fuzzing_remote_list.txt -H "${HEADER}" $FFUF_FLAGS -s -maxtime $FFUF_MAXTIME -oJ $dir/.tmp/ffuf-content.json $AXIOM_EXTRA_ARGS 2>>"$LOGFILE" >/dev/null
 
@@ -3315,10 +3318,9 @@ function fuzz() {
 					sub_out=$(echo $sub | sed -e 's|^[^/]*//||' -e 's|/.*$||')
 					[ -s "$dir/.tmp/ffuf-content.json" ] && cat $dir/.tmp/ffuf-content.json | jq -r 'try .results[] | "\(.status) \(.length) \(.url)"' | grep $sub | sort -k1 | anew -q fuzzing/${sub_out}.txt
 				done
-				find $dir/fuzzing/ -type f -iname "*.txt" ! -name "fuzzing_full.txt" -exec cat {} + 2>>"$LOGFILE" | sort -k1 | anew -q $dir/fuzzing/fuzzing_full.txt
-				[ -f "$dir/fuzzing/fuzzing_full.txt" ] && cp "$dir/fuzzing/fuzzing_full.txt" "$dir/fuzzing/fuzz.log" 2>/dev/null
+				find $dir/fuzzing/ -type f -iname "*.txt" -exec cat {} + 2>>"$LOGFILE" | sort -k1 | anew -q $dir/fuzzing/fuzzing_full.txt
 			fi
-			end_func "Results are saved in $domain/fuzzing/fuzzing_full.txt" ${FUNCNAME[0]}
+			end_func "Results are saved in $domain/fuzzing/*subdomain*.txt" ${FUNCNAME[0]}
 		else
 			end_func "No $domain/web/webs.txts file found, fuzzing skipped " ${FUNCNAME[0]}
 		fi
@@ -5389,14 +5391,14 @@ function end() {
 		"${tools}/reconftw_ai/venv/bin/python3" "${tools}/reconftw_ai/reconftw_ai.py" --results-dir ${dir} --output-dir ${dir}/ai_result --model ${AI_MODEL} --output-format ${AI_REPORT_TYPE} --report-type ${AI_REPORT_PROFILE} --prompts-file ${tools}/reconftw_ai/prompts.json 2>>"${LOGFILE}" >/dev/null
 	fi
 
-	find $dir -type f -empty -print | grep -v '.called_fn' | grep -v '.log' | grep -v '.tmp' | grep -v 'fuzz.log' | grep -v 'fuzzing_full.txt' | xargs rm -f 2>>"$LOGFILE" >/dev/null
-	find $dir -type d -empty -print ! -path "$dir/fuzzing" ! -path "$dir/fuzzing/*" -delete 2>>"$LOGFILE" >/dev/null
+	find $dir -type f -empty -print | grep -v '.called_fn' | grep -v '.log' | grep -v '.tmp' | xargs rm -f 2>>"$LOGFILE" >/dev/null
+	find $dir -type d -empty -print -delete 2>>"$LOGFILE" >/dev/null
 
 	echo "[$(date +'%Y-%m-%d %H:%M:%S')] End" >>"${LOGFILE}"
 
 	if [[ $PRESERVE != true ]]; then
-		find $dir -type f -empty | grep -v "called_fn" | grep -v "fuzz.log" | grep -v "fuzzing_full.txt" | xargs rm -f 2>>"$LOGFILE" >/dev/null
-		find $dir -type d -empty | grep -v "called_fn" | grep -v "/fuzzing$" | xargs rm -rf 2>>"$LOGFILE" >/dev/null
+		find $dir -type f -empty | grep -v "called_fn" | xargs rm -f 2>>"$LOGFILE" >/dev/null
+		find $dir -type d -empty | grep -v "called_fn" | xargs rm -rf 2>>"$LOGFILE" >/dev/null
 	fi
 
 	if [[ $REMOVETMP == true ]]; then
